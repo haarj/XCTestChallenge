@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
+#import "Event.h"
 
 @interface MeetMeUpTests : XCTestCase
 
@@ -25,16 +26,92 @@
     [super tearDown];
 }
 
-- (void)testExample {
-    // This is an example of a functional test case.
-    XCTAssert(YES, @"Pass");
+- (void)testAttendanceCountIncrement
+{
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Waiting for comments to return"];
+
+    [Event performSearchWithKeyword:@"mobile" andComplete:^(NSArray *events) {
+
+        Event *secondEvent = [events objectAtIndex:1];
+
+        int attendingCount = [[secondEvent RSVPCount] intValue];
+        secondEvent.attending = YES;
+        XCTAssertEqual(attendingCount++, [[secondEvent RSVPCount] intValue]);
+
+        [expectation fulfill];
+    }];
+
+    [self waitForExpectationsWithTimeout:10.0 handler:nil];
 }
 
-- (void)testPerformanceExample {
-    // This is an example of a performance test case.
-    [self measureBlock:^{
-        // Put the code you want to measure the time of here.
+- (void)testAttendanceCountDecrement
+{
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Waiting for comments to return"];
+
+    [Event performSearchWithKeyword:@"mobile" andComplete:^(NSArray *events) {
+
+        Event *secondEvent = [events objectAtIndex:1];
+
+        secondEvent.attending = YES;
+        int attendingCount = [[secondEvent RSVPCount] intValue];
+        secondEvent.attending = NO;
+        XCTAssertEqual(attendingCount--, [[secondEvent RSVPCount] intValue]);
+
+        [expectation fulfill];
     }];
+
+    [self waitForExpectationsWithTimeout:10.0 handler:nil];
+}
+
+- (void)testAttendanceBooleanManagedProperly
+{
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Waiting for comments to return"];
+
+    [Event performSearchWithKeyword:@"mobile" andComplete:^(NSArray *events) {
+
+        Event *secondEvent = [events objectAtIndex:1];
+
+        secondEvent.attending = YES;
+
+        XCTAssertEqual(secondEvent.attending, YES);
+
+        [expectation fulfill];
+    }];
+
+    [self waitForExpectationsWithTimeout:10.0 handler:nil];
+
+}
+
+
+-(void)testPerformSearchWithKeyword
+{
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Wating for response for search"];
+
+    [Event performSearchWithKeyword:@"mobile" andComplete:^(NSArray *events) {
+       XCTAssertEqual(15, events.count);
+       [expectation fulfill];
+       
+   }];
+    [self waitForExpectationsWithTimeout:5.0 handler:nil];
+}
+
+
+-(void)testForCommentNumberAndUserID
+{
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Waiting for comments from User 99045732"];
+
+    [Event performSearchWithKeyword:@"mobile" andComplete:^(NSArray *events) {
+        Event *secondEvent = [events objectAtIndex:1];
+        [secondEvent getCommentsWithBlock:^(NSArray *comments) {
+            XCTAssert(comments.count == 1);
+            Comment *comment = [comments firstObject];
+            NSNumber *memberIDNumber = @([@"99045732" intValue]);
+            XCTAssert([comment.memberID isEqual:memberIDNumber]);
+            [expectation fulfill];
+        }];
+
+    }];
+    [self waitForExpectationsWithTimeout:10.0 handler:nil];
 }
 
 @end
